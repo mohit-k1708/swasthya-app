@@ -11,6 +11,16 @@ const TITLES = {
   result: 'Result',
 };
 
+const GRADE_INFO = {
+  A: { color: 'green', message: 'Excellent choice!' },
+  B: { color: 'green', message: 'Good choice' },
+  C: { color: 'orange', message: 'Moderate — enjoy occasionally' },
+  D: { color: 'red', message: 'Poor choice — consume rarely' },
+  E: { color: 'red', message: 'Avoid this product' },
+};
+
+const fmt = (value, unit) => (value == null ? '—' : `${value}${unit}`);
+
 export default function BarcodeScanner({ onBack }) {
   const [view, setView] = useState('scan'); // 'scan' | 'analyzing' | 'result'
   const [barcode, setBarcode] = useState('');
@@ -127,12 +137,12 @@ export default function BarcodeScanner({ onBack }) {
       const data = await scanBarcode(trimmed);
       console.log('Backend response:', data);
       if (flowTokenRef.current !== token || !isMountedRef.current) return;
-      setResult({ ok: true, barcode: data.barcode, message: data.message });
+      setResult(data);
     } catch (err) {
       console.error('Backend request failed:', err);
       if (flowTokenRef.current !== token || !isMountedRef.current) return;
       setResult({
-        ok: false,
+        found: false,
         barcode: trimmed,
         message: 'Could not reach the server. Is it running on localhost:4000?',
       });
@@ -226,15 +236,70 @@ export default function BarcodeScanner({ onBack }) {
           </div>
         )}
 
-        {view === 'result' && result && (
+        {view === 'result' && result && !result.found && (
           <div className="result-view">
-            <div className={`result-badge ${result.ok ? 'ok' : 'bad'}`}>
-              {result.ok ? '✅' : '❌'}
-            </div>
-            <p className="result-barcode">Barcode: {result.barcode}</p>
-            <p className={`result-status ${result.ok ? 'ok' : 'bad'}`}>
-              {result.ok ? 'Successfully received' : result.message}
+            <div className="result-badge bad">❌</div>
+            <p className="result-barcode">Barcode: {result.barcode || pendingCode}</p>
+            <p className="result-status bad">
+              {result.message || 'Product not found. Try another barcode.'}
             </p>
+            <button className="cta" onClick={resetToScan}>
+              ‹ Back
+            </button>
+          </div>
+        )}
+
+        {view === 'result' && result && result.found && (
+          <div className="result-view">
+            <p className="result-product-name">{result.name}</p>
+
+            {(() => {
+              const gradeInfo = GRADE_INFO[result.grade] || GRADE_INFO.C;
+              return (
+                <>
+                  <div className={`grade-circle grade-${gradeInfo.color}`}>{result.grade}</div>
+                  <p className={`grade-message grade-message-${gradeInfo.color}`}>
+                    {gradeInfo.message}
+                  </p>
+                </>
+              );
+            })()}
+
+            <div className="stats-grid">
+              <div className="stat-box">
+                <span className="stat-value">{fmt(result.nutrition?.sugar, 'g')}</span>
+                <span className="stat-label">Sugar</span>
+              </div>
+              <div className="stat-box">
+                <span className="stat-value">{fmt(result.nutrition?.protein, 'g')}</span>
+                <span className="stat-label">Protein</span>
+              </div>
+              <div className="stat-box">
+                <span className="stat-value">{result.additivesCount ?? '—'}</span>
+                <span className="stat-label">Additives</span>
+              </div>
+              <div className="stat-box">
+                <span className="stat-value">{fmt(result.nutrition?.saturatedFat, 'g')}</span>
+                <span className="stat-label">Sat. Fat</span>
+              </div>
+              <div className="stat-box">
+                <span className="stat-value">{fmt(result.nutrition?.fiber, 'g')}</span>
+                <span className="stat-label">Fiber</span>
+              </div>
+              <div className="stat-box">
+                <span className="stat-value">{result.novaGroup ?? '—'}</span>
+                <span className="stat-label">NOVA</span>
+              </div>
+            </div>
+
+            {result.reasons?.length > 0 && (
+              <ul className="reasons-list">
+                {result.reasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            )}
+
             <button className="cta" onClick={resetToScan}>
               📷 Scan another product
             </button>

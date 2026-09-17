@@ -640,6 +640,118 @@ h1 .accent {
   color: #C6423C;
 }
 
+.result-product-name {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 21px;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+
+.grade-circle {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 40px;
+  color: var(--white);
+  margin: 0 auto 14px;
+  box-shadow: var(--shadow);
+}
+
+.grade-circle.grade-green {
+  background: var(--green);
+}
+
+.grade-circle.grade-orange {
+  background: #E8871E;
+}
+
+.grade-circle.grade-red {
+  background: #C6423C;
+}
+
+.grade-message {
+  font-weight: 800;
+  font-size: 16px;
+  margin-bottom: 22px;
+}
+
+.grade-message-green {
+  color: var(--green);
+}
+
+.grade-message-orange {
+  color: #B85C10;
+}
+
+.grade-message-red {
+  color: #C6423C;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0 0 22px;
+}
+
+.stat-box {
+  background: var(--cream);
+  border: 2px solid #EDE4D2;
+  border-radius: 14px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-value {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.reasons-list {
+  text-align: left;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reasons-list li {
+  background: #FFF6E9;
+  border: 2px solid #F3E2C0;
+  border-radius: 12px;
+  padding: 10px 14px 10px 30px;
+  position: relative;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.reasons-list li:before {
+  content: '•';
+  position: absolute;
+  left: 14px;
+  color: var(--orange);
+  font-weight: 800;
+}
+
 /* FOOTER */
 .site-footer {
   background: var(--ink);
