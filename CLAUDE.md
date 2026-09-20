@@ -25,7 +25,7 @@ No test suite is configured yet.
 ### Backend (run from `server/`)
 - `npm run dev` — start with nodemon (auto-restart)
 - `npm run start` — start with plain `node`
-- Listens on `http://localhost:4000`, hardcoded (not env-configurable)
+- Listens on `http://localhost:4000` by default; reads `process.env.PORT` if set (required for hosts like Railway that assign their own port)
 
 ### Running both together
 The frontend calls the backend directly via `fetch` (see `src/api/scan.js`), so for the app to fully work both processes must be running at once: `server` on :4000 and Vite on :5173 (or whatever port). There's no proxy config — CORS on the backend (`cors()` middleware) is what makes cross-port calls work in dev.
@@ -45,7 +45,7 @@ The frontend calls the backend directly via `fetch` (see `src/api/scan.js`), so 
 Uses `@ericblade/quagga2` (not `html5-qrcode`, which was tried first and dropped — it couldn't reliably decode 1D barcodes, only QR). Quagga is configured for EAN-13/8, UPC-A/E, and Code128 in `BarcodeScanner.jsx`'s `startCamera()`. If retuning detection, that's the one place to edit (`decoder.readers`, `locator`, `numOfWorkers`).
 
 ### Backend contract
-Single endpoint: `POST /api/scan` with `{ barcode }` in the body. `server/routes/scan.js` looks the barcode up via `server/services/openFoodFacts.js` (Open Food Facts API v2) and, if found, grades it via `server/services/grading.js`. Response is either the normalized product merged with `{ grade, totalScore, reasons }`, or `{ found: false, message }` if the barcode isn't in Open Food Facts or the lookup failed. `src/api/scan.js` is the single fetch wrapper the frontend uses to call it (`API_BASE_URL` is hardcoded to `http://localhost:4000`).
+Single endpoint: `POST /api/scan` with `{ barcode }` in the body. `server/routes/scan.js` looks the barcode up via `server/services/openFoodFacts.js` (Open Food Facts API v2) and, if found, grades it via `server/services/grading.js`. Response is either the normalized product merged with `{ grade, totalScore, reasons }`, or `{ found: false, message }` if the barcode isn't in Open Food Facts or the lookup failed. `src/api/scan.js` is the single fetch wrapper the frontend uses to call it (`API_BASE_URL` reads `import.meta.env.VITE_API_URL`, falling back to `http://localhost:4000` for local dev).
 
 `openFoodFacts.js` resolves the OFF hostname via a hardcoded public DNS resolver (8.8.8.8/1.1.1.1) instead of the OS resolver — on some networks the system resolver times out for `world.openfoodfacts.org` specifically even though other domains resolve fine. This requires issuing the request through `undici`'s own `request()` with a custom `Agent({ connect: { lookup } })`, not the global `fetch()` — passing an npm-installed `undici` Agent as a `dispatcher` to Node's *built-in* `fetch` throws (`invalid onRequestStart method`) when the two `undici` versions diverge, which they do as of Node 24. Fetching also retries once on timeout (15s per attempt) before giving up.
 
