@@ -28,6 +28,17 @@
   --muted: #7A6A57;
   --border: #EFE3D2;
 
+  /* Warm yellow page background */
+  --bg-yellow-top: #FFF6DC;
+  --bg-yellow-bottom: #FBE39E;
+
+  /* Wood texture for buttons */
+  --wood-light: #A9835C;
+  --wood: #8B6F47;
+  --wood-dark: #5A4527;
+  --wood-darkest: #3A2B16;
+  --wood-text: #FFF3D6;
+
   --radius: 22px;
   --radius-sm: 14px;
   --shadow: 0 14px 30px rgba(139, 111, 71, 0.14);
@@ -42,9 +53,56 @@
 
 body {
   margin: 0;
-  background: var(--cream);
+  background: linear-gradient(180deg, var(--bg-yellow-top) 0%, var(--bg-yellow-bottom) 100%) fixed;
   color: var(--ink);
   font-family: 'Nunito', 'Trebuchet MS', Arial, sans-serif;
+}
+
+/* Shared wood-grain button texture: layered grain streaks over a
+   brown gradient, used by .cta and .nav-cta. */
+.cta,
+.nav-cta {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--wood);
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.06) 0px,
+      rgba(255, 255, 255, 0.06) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.1) 0px,
+      rgba(0, 0, 0, 0.1) 2px,
+      transparent 2px,
+      transparent 10px
+    ),
+    linear-gradient(180deg, var(--wood-light) 0%, var(--wood) 45%, var(--wood-dark) 100%);
+  color: var(--wood-text);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+
+/* Diagonal shine sweep on hover */
+.cta::after,
+.nav-cta::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.cta:hover::after,
+.nav-cta:hover::after {
+  left: 130%;
 }
 
 h1, h2, h3 {
@@ -124,23 +182,21 @@ button {
 .nav-cta {
   padding: 11px 22px;
   border-radius: 20px;
-  background: var(--brown);
-  color: var(--white);
   font-weight: 800;
-  box-shadow: 0 4px 0 var(--brown-dark), 0 8px 16px rgba(139, 111, 71, 0.2);
+  box-shadow: 0 5px 0 var(--wood-darkest), 0 10px 20px rgba(58, 43, 22, 0.35);
   transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
 }
 
 .nav-cta:hover {
   transform: translateY(-2px);
-  filter: brightness(1.08);
-  box-shadow: 0 5px 0 var(--brown-dark), 0 10px 18px rgba(139, 111, 71, 0.22);
+  filter: brightness(1.12);
+  box-shadow: 0 6px 0 var(--wood-darkest), 0 14px 24px rgba(58, 43, 22, 0.4);
 }
 
 .nav-cta:active {
-  transform: translateY(2px);
-  background: var(--brown-dark);
-  box-shadow: 0 1px 0 var(--brown-dark);
+  transform: translateY(3px);
+  filter: brightness(0.85);
+  box-shadow: 0 1px 0 var(--wood-darkest);
 }
 
 /* PAGE */
@@ -191,25 +247,23 @@ h1 .accent {
 .cta {
   padding: 15px 28px;
   border-radius: 20px;
-  background: var(--yellow);
-  color: var(--brown-dark);
   font-weight: 800;
   font-size: 16px;
-  box-shadow: 0 4px 0 var(--yellow-dark), 0 10px 20px rgba(230, 185, 58, 0.28);
+  box-shadow: 0 6px 0 var(--wood-darkest), 0 14px 26px rgba(58, 43, 22, 0.4);
   margin-top: 24px;
-  transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
 }
 
 .cta:hover {
   transform: translateY(-2px);
-  background: #FFE070;
-  box-shadow: 0 5px 0 var(--yellow-dark), 0 12px 22px rgba(230, 185, 58, 0.3);
+  filter: brightness(1.12);
+  box-shadow: 0 7px 0 var(--wood-darkest), 0 18px 30px rgba(58, 43, 22, 0.45);
 }
 
 .cta:active {
-  transform: translateY(2px);
-  background: var(--yellow-dark);
-  box-shadow: 0 1px 0 var(--yellow-dark);
+  transform: translateY(4px);
+  filter: brightness(0.85);
+  box-shadow: 0 1px 0 var(--wood-darkest);
 }
 
 .checklist {
