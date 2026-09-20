@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Quagga from '@ericblade/quagga2';
 import { scanBarcode } from '../api/scan';
+import Mascot from './Mascot';
 
 const ANALYZING_DELAY_MS = 2000;
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -12,11 +13,11 @@ const TITLES = {
 };
 
 const GRADE_INFO = {
-  A: { color: 'green', message: 'Excellent choice!' },
-  B: { color: 'green', message: 'Good choice' },
-  C: { color: 'orange', message: 'Moderate — enjoy occasionally' },
-  D: { color: 'red', message: 'Poor choice — consume rarely' },
-  E: { color: 'red', message: 'Avoid this product' },
+  A: { color: 'green', message: '🌟 Excellent choice!' },
+  B: { color: 'green', message: '👍 Good choice' },
+  C: { color: 'orange', message: '🤔 Moderate — enjoy occasionally' },
+  D: { color: 'red', message: '😬 Poor choice — consume rarely' },
+  E: { color: 'red', message: '🚫 Avoid this product' },
 };
 
 const fmt = (value, unit) => (value == null ? '—' : `${value}${unit}`);
@@ -93,8 +94,8 @@ export default function BarcodeScanner({ onBack }) {
       (err) => {
         if (err) {
           console.error('Quagga init failed:', err);
-          setCameraStatus('Camera unavailable — check permissions, or enter the barcode manually.');
-          setCameraStatusKind('error');
+          setCameraStatus('😕 Camera unavailable — no worries, just type the barcode below!');
+          setCameraStatusKind('warning');
           setIsScanning(false);
           return;
         }
@@ -118,7 +119,7 @@ export default function BarcodeScanner({ onBack }) {
   const runScanFlow = async (rawCode) => {
     const trimmed = rawCode.trim();
     if (!trimmed) {
-      setInlineError('Please enter a barcode');
+      setInlineError('⚠️ Please enter a barcode to scan.');
       return;
     }
     setInlineError('');
@@ -229,20 +230,24 @@ export default function BarcodeScanner({ onBack }) {
 
         {view === 'analyzing' && (
           <div className="analyzing-view">
+            <div className="analyzing-mascot-wrap">
+              <Mascot pose="happy" size={110} className="mascot-bounce" />
+            </div>
             <div className="analyzing-spinner" />
             <p>
-              Checking barcode <b>{pendingCode}</b>…
+              🔍 Sniffing out what's inside <b>{pendingCode}</b>…
             </p>
           </div>
         )}
 
         {view === 'result' && result && !result.found && (
           <div className="result-view">
-            <div className="result-badge bad">❌</div>
+            <div className="result-badge bad">😕</div>
             <p className="result-barcode">Barcode: {result.barcode || pendingCode}</p>
             <p className="result-status bad">
               {result.message || 'Product not found. Try another barcode.'}
             </p>
+            <p className="result-hint">🔎 Double-check the digits, or try scanning again.</p>
             <button className="cta" onClick={resetToScan}>
               ‹ Back
             </button>
