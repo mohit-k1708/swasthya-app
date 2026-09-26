@@ -38,7 +38,7 @@ const CATEGORY_KEYWORDS = {
   cereals: ['breakfast-cereal', 'cereal'],
 };
 
-function resolveCategory(categoryTags = []) {
+export function resolveCategory(categoryTags = []) {
   const tags = categoryTags.map((tag) => tag.toLowerCase());
 
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {

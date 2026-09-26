@@ -25,9 +25,11 @@ async function lookupViaPublicDns(hostname, options, callback) {
   }
 }
 
-const offDispatcher = new Agent({ connect: { lookup: lookupViaPublicDns } });
+// Exported so other OFF-calling services (e.g. dynamicAlternatives.js) can
+// reuse the same DNS-resilient dispatcher instead of duplicating it.
+export const offDispatcher = new Agent({ connect: { lookup: lookupViaPublicDns } });
 
-function normalizeProduct(barcode, product) {
+export function normalizeProduct(barcode, product) {
   const nutriments = product.nutriments || {};
 
   return {

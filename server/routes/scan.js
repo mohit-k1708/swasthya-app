@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { fetchProductByBarcode } from '../services/openFoodFacts.js';
 import { gradeProduct } from '../services/grading.js';
-import { getAlternatives } from '../services/alternatives.js';
+import { getAlternatives, resolveCategory } from '../services/alternatives.js';
+import { searchAlternatives } from '../services/dynamicAlternatives.js';
 
 const router = Router();
 
@@ -24,7 +25,13 @@ router.post('/scan', async (req, res) => {
   const response = { ...product, ...grading };
 
   if (grading.grade === 'D' || grading.grade === 'E') {
-    const alternatives = getAlternatives(product.categoryTags);
+    const category = resolveCategory(product.categoryTags);
+
+    let alternatives = category ? await searchAlternatives(category, grading.grade) : null;
+    if (!alternatives || alternatives.length === 0) {
+      alternatives = getAlternatives(product.categoryTags);
+    }
+
     if (alternatives) {
       response.alternatives = alternatives;
     }
