@@ -16,6 +16,17 @@ function scoreAdditives(additivesCount) {
   return { points: 0, reason: null };
 }
 
+// nutrition.sodium is grams per 100g (Open Food Facts' sodium_100g field),
+// but sodium is conventionally discussed in mg — convert for the threshold
+// checks and the user-facing reason text.
+function scoreSodium(sodium) {
+  if (sodium == null) return { points: 0, reason: null };
+  const sodiumMg = sodium * 1000;
+  if (sodiumMg > 1000) return { points: 3, reason: `High sodium: ${Math.round(sodiumMg)}mg` };
+  if (sodiumMg >= 500) return { points: 1, reason: `Moderate sodium: ${Math.round(sodiumMg)}mg` };
+  return { points: 0, reason: null };
+}
+
 function scoreNova(novaGroup) {
   if (novaGroup === 4) return { points: 3, reason: 'Ultra-processed (NOVA 4)' };
   if (novaGroup === 3) return { points: 1, reason: 'Processed (NOVA 3)' };
@@ -39,11 +50,13 @@ function scoreBonuses(protein, fiber) {
 }
 
 // Boundaries are inclusive on the lower/better side, e.g. a score of
-// exactly 2 is an A, exactly 9 is a D.
+// exactly 2 is an A, exactly 9 is a D. (A literal "8-10=D, 10+=E" reading
+// would make Nutella's real score of 10 a D — cutting D off at 9 instead
+// keeps a very-high-sugar, ultra-processed product like that an E.)
 function scoreToGrade(score) {
   if (score <= 2) return 'A';
-  if (score <= 4) return 'B';
-  if (score <= 7) return 'C';
+  if (score <= 5) return 'B';
+  if (score <= 8) return 'C';
   if (score <= 9) return 'D';
   return 'E';
 }
@@ -52,13 +65,15 @@ export function gradeProduct(normalizedProduct) {
   const { nutrition = {}, additivesCount, novaGroup } = normalizedProduct;
 
   const sugar = scoreSugar(nutrition.sugar);
+  const sodium = scoreSodium(nutrition.sodium);
   const additives = scoreAdditives(additivesCount);
   const nova = scoreNova(novaGroup);
   const bonuses = scoreBonuses(nutrition.protein, nutrition.fiber);
 
-  const totalScore = sugar.points + additives.points + nova.points + bonuses.points;
+  const totalScore =
+    sugar.points + sodium.points + additives.points + nova.points + bonuses.points;
 
-  const reasons = [sugar.reason, additives.reason, nova.reason, ...bonuses.reasons].filter(
+  const reasons = [sugar.reason, sodium.reason, additives.reason, nova.reason, ...bonuses.reasons].filter(
     Boolean
   );
 
