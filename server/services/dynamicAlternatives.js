@@ -24,8 +24,13 @@ const CATEGORY_SEARCH_TERMS = {
 };
 
 function buildHighlight(normalized, grading) {
-  if (grading.reasons.length > 0) {
-    return grading.reasons[0];
+  // gradeProduct's reasons list every scoring factor, including penalties
+  // (e.g. "High sodium: ...") that a product can still absorb and grade
+  // A/B overall — showing one of those as an alternative's "benefit" reads
+  // backwards, so prefer an actual positive (bonus) reason when there is one.
+  const positiveReason = grading.reasons.find((reason) => reason.startsWith('Good '));
+  if (positiveReason) {
+    return positiveReason;
   }
   const { sugar, protein } = normalized.nutrition;
   if (sugar != null && protein != null) {
