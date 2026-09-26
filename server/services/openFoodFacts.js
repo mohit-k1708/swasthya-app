@@ -88,11 +88,15 @@ export async function fetchProductByBarcode(barcode) {
       }
       if (timedOut) {
         console.error('[API] Failed after retries');
-        return { found: false, message: 'Open Food Facts API is slow - try again' };
+        return {
+          found: false,
+          message: 'Open Food Facts API is slow - try again',
+          reason: 'api_timeout',
+        };
       }
 
       console.error('[API] Request failed:', err.message);
-      return { found: false, message: 'API error, try again' };
+      return { found: false, message: 'API error, try again', reason: 'api_error' };
     }
   }
 
@@ -103,7 +107,7 @@ export async function fetchProductByBarcode(barcode) {
   if (statusCode !== 200 && statusCode !== 404) {
     console.error(`[API] Unexpected status ${statusCode}`);
     await body.dump();
-    return { found: false, message: 'API error, try again' };
+    return { found: false, message: 'API error, try again', reason: 'api_error' };
   }
 
   let data;
@@ -111,11 +115,11 @@ export async function fetchProductByBarcode(barcode) {
     data = await body.json();
   } catch (err) {
     console.error('[API] Failed to parse response:', err.message);
-    return { found: false, message: 'API error, try again' };
+    return { found: false, message: 'API error, try again', reason: 'api_error' };
   }
 
   if (data.status !== 1 || !data.product) {
-    return { found: false, message: 'Barcode not found in database' };
+    return { found: false, message: 'Product not in database', reason: 'not_found' };
   }
 
   return normalizeProduct(barcode, data.product);

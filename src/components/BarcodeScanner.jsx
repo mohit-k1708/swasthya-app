@@ -13,12 +13,22 @@ const TITLES = {
 };
 
 const GRADE_INFO = {
-  A: { color: 'green', message: '🌟 Excellent choice!' },
-  B: { color: 'green', message: '👍 Good choice' },
-  C: { color: 'orange', message: '🤔 Moderate — enjoy occasionally' },
-  D: { color: 'red', message: '😬 Poor choice — consume rarely' },
-  E: { color: 'red', message: '🚫 Avoid this product' },
+  A: { color: 'green', message: '🌟 Excellent choice!', tooltip: 'Grade A: minimal sugar, salt & processing — a great everyday pick.' },
+  B: { color: 'green', message: '👍 Good choice', tooltip: 'Grade B: a solid, reasonably healthy option.' },
+  C: { color: 'orange', message: '🤔 Moderate — enjoy occasionally', tooltip: 'Grade C: some sugar, salt, or processing — fine in moderation.' },
+  D: { color: 'red', message: '😬 Poor choice — consume rarely', tooltip: 'Grade D: high in sugar, salt, or additives — best kept occasional.' },
+  E: { color: 'red', message: '🚫 Avoid this product', tooltip: 'Grade E: very high sugar/salt/processing — best avoided.' },
 };
+
+const ERROR_COPY = {
+  not_found: { emoji: '😕', title: "Couldn't find this product.", hint: 'Try another barcode.' },
+  api_timeout: { emoji: '🐢', title: 'Our nutrition database is being slow right now.', hint: 'Please try again in a moment.' },
+  api_error: { emoji: '🔌', title: 'Having trouble reaching our database.', hint: 'Please try again.' },
+  network: { emoji: '📡', title: 'Could not reach the server.', hint: 'Check your connection and try again.' },
+  no_barcode: { emoji: '⚠️', title: 'No barcode entered.', hint: 'Type or scan a barcode and try again.' },
+};
+
+const ANALYZING_MESSAGE_SWAP_MS = 1100;
 
 const fmt = (value, unit) => (value == null ? '—' : `${value}${unit}`);
 
@@ -28,6 +38,7 @@ export default function BarcodeScanner({ onBack }) {
   const [inlineError, setInlineError] = useState('');
   const [pendingCode, setPendingCode] = useState('');
   const [result, setResult] = useState(null); // { ok, barcode, message }
+  const [analyzingStage, setAnalyzingStage] = useState('scanning'); // 'scanning' | 'searching'
 
   const [isScanning, setIsScanning] = useState(false);
   const [cameraStatus, setCameraStatus] = useState('');
@@ -129,7 +140,16 @@ export default function BarcodeScanner({ onBack }) {
     const token = ++flowTokenRef.current;
     setPendingCode(trimmed);
     setResult(null);
+    setAnalyzingStage('scanning');
     setView('analyzing');
+
+    // Purely cosmetic progress messaging — the real request is one call,
+    // but "Analyzing" then "Finding healthier options" reads as two steps.
+    setTimeout(() => {
+      if (flowTokenRef.current === token && isMountedRef.current) {
+        setAnalyzingStage('searching');
+      }
+    }, ANALYZING_MESSAGE_SWAP_MS);
 
     await wait(ANALYZING_DELAY_MS);
     if (flowTokenRef.current !== token || !isMountedRef.current) return;
@@ -145,7 +165,8 @@ export default function BarcodeScanner({ onBack }) {
       setResult({
         found: false,
         barcode: trimmed,
-        message: 'Could not reach the server. Is it running on localhost:4000?',
+        message: 'Could not reach the server.',
+        reason: 'network',
       });
     }
 
@@ -234,22 +255,31 @@ export default function BarcodeScanner({ onBack }) {
               <Mascot pose="happy" size={110} className="mascot-bounce" />
             </div>
             <div className="analyzing-spinner" />
-            <p>
-              🔍 Sniffing out what's inside <b>{pendingCode}</b>…
-            </p>
+            {analyzingStage === 'scanning' ? (
+              <p>
+                🔍 Sniffing out what's inside <b>{pendingCode}</b>…
+              </p>
+            ) : (
+              <p>🌟 Finding healthier options…</p>
+            )}
           </div>
         )}
 
         {view === 'result' && result && !result.found && (
           <div className="result-view">
-            <div className="result-badge bad">😕</div>
-            <p className="result-barcode">Barcode: {result.barcode || pendingCode}</p>
-            <p className="result-status bad">
-              {result.message || 'Product not found. Try another barcode.'}
-            </p>
-            <p className="result-hint">🔎 Double-check the digits, or try scanning again.</p>
+            {(() => {
+              const errorInfo = ERROR_COPY[result.reason] || ERROR_COPY.not_found;
+              return (
+                <>
+                  <div className="result-badge warn">{errorInfo.emoji}</div>
+                  <p className="result-barcode">Barcode: {result.barcode || pendingCode}</p>
+                  <p className="result-status warn">{errorInfo.title}</p>
+                  <p className="result-hint">{errorInfo.hint}</p>
+                </>
+              );
+            })()}
             <button className="cta" onClick={resetToScan}>
-              ‹ Back
+              🔄 Try Again
             </button>
           </div>
         )}
@@ -262,7 +292,12 @@ export default function BarcodeScanner({ onBack }) {
               const gradeInfo = GRADE_INFO[result.grade] || GRADE_INFO.C;
               return (
                 <>
-                  <div className={`grade-circle grade-${gradeInfo.color}`}>{result.grade}</div>
+                  <div
+                    className={`grade-circle grade-${gradeInfo.color}${result.grade === 'E' ? ' grade-emphasis' : ''}`}
+                    title={gradeInfo.tooltip}
+                  >
+                    {result.grade}
+                  </div>
                   <p className={`grade-message grade-message-${gradeInfo.color}`}>
                     {gradeInfo.message}
                   </p>
@@ -274,6 +309,12 @@ export default function BarcodeScanner({ onBack }) {
               <div className="stat-box">
                 <span className="stat-value">{fmt(result.nutrition?.sugar, 'g')}</span>
                 <span className="stat-label">Sugar</span>
+              </div>
+              <div className="stat-box">
+                <span className="stat-value">
+                  {result.nutrition?.sodium == null ? '—' : `${Math.round(result.nutrition.sodium * 1000)}mg`}
+                </span>
+                <span className="stat-label">Sodium</span>
               </div>
               <div className="stat-box">
                 <span className="stat-value">{fmt(result.nutrition?.protein, 'g')}</span>
@@ -310,16 +351,28 @@ export default function BarcodeScanner({ onBack }) {
                 <h3 className="alternatives-title">🌟 Healthier Alternatives</h3>
                 <div className="alternatives-grid">
                   {result.alternatives.map((alt) => {
-                    const color = (GRADE_INFO[alt.grade] || GRADE_INFO.C).color;
+                    const altInfo = GRADE_INFO[alt.grade] || GRADE_INFO.C;
                     return (
                       <div className="alt-card" key={alt.name}>
-                        <div className={`grade-circle alt-grade grade-${color}`}>{alt.grade}</div>
+                        <div
+                          className={`grade-circle alt-grade grade-${altInfo.color}`}
+                          title={altInfo.tooltip}
+                        >
+                          {alt.grade}
+                        </div>
                         <p className="alt-name">{alt.name}</p>
                         <p className="alt-benefit">{alt.benefit}</p>
                       </div>
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {result.alternativesMessage && (
+              <div className="no-alternatives">
+                <p className="no-alternatives-message">💡 {result.alternativesMessage}</p>
+                <p className="no-alternatives-suggestion">{result.alternativesSuggestion}</p>
               </div>
             )}
 

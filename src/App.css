@@ -756,6 +756,11 @@ h1 .accent {
   border: 3px solid var(--red);
 }
 
+.result-badge.warn {
+  background: var(--orange-light);
+  border: 3px solid var(--orange);
+}
+
 @keyframes pop-in {
   from {
     transform: scale(0.5);
@@ -788,6 +793,10 @@ h1 .accent {
 
 .result-status.bad {
   color: var(--red-dark);
+}
+
+.result-status.warn {
+  color: var(--orange-dark);
 }
 
 .result-hint {
@@ -832,6 +841,21 @@ h1 .accent {
 .grade-circle.grade-red {
   background: radial-gradient(circle at 30% 25%, #EFA898, var(--red) 65%, var(--red-dark) 100%);
   box-shadow: 0 10px 22px rgba(184, 86, 68, 0.35);
+}
+
+/* Grade E is the most severe outcome — give it a touch more presence than
+   D, which shares the same red family. */
+.grade-circle.grade-emphasis {
+  animation: pop-in var(--bounce) both, grade-emphasis-pulse 2s ease-in-out 0.3s infinite;
+}
+
+@keyframes grade-emphasis-pulse {
+  0%, 100% {
+    box-shadow: 0 10px 22px rgba(184, 86, 68, 0.35);
+  }
+  50% {
+    box-shadow: 0 10px 28px rgba(184, 86, 68, 0.6), 0 0 0 6px rgba(217, 117, 96, 0.18);
+  }
 }
 
 .grade-message {
@@ -967,6 +991,33 @@ h1 .accent {
   font-size: 11px;
   color: var(--muted);
   line-height: 1.4;
+}
+
+.no-alternatives {
+  background: var(--orange-light);
+  border: 2px solid #F3D8B8;
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin: 4px 0 24px;
+  text-align: left;
+}
+
+.no-alternatives-message {
+  font-weight: 800;
+  font-size: 13.5px;
+  color: var(--brown-dark);
+  margin-bottom: 4px;
+}
+
+.no-alternatives-suggestion {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+@media (max-width: 860px) {
+  .alternatives-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 480px) {

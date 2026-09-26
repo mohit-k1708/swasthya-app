@@ -34,19 +34,16 @@ function scoreNova(novaGroup) {
 }
 
 function scoreBonuses(protein, fiber) {
-  let points = 0;
-  const reasons = [];
+  const items = [];
 
   if (protein != null && protein > 10) {
-    points -= 1;
-    reasons.push(`Good protein source: ${protein}g`);
+    items.push({ points: -1, reason: `Good protein source: ${protein}g` });
   }
   if (fiber != null && fiber > 3) {
-    points -= 1;
-    reasons.push(`Good fiber source: ${fiber}g`);
+    items.push({ points: -1, reason: `Good fiber source: ${fiber}g` });
   }
 
-  return { points, reasons };
+  return items;
 }
 
 // Boundaries are inclusive on the lower/better side, e.g. a score of
@@ -70,16 +67,23 @@ export function gradeProduct(normalizedProduct) {
   const nova = scoreNova(novaGroup);
   const bonuses = scoreBonuses(nutrition.protein, nutrition.fiber);
 
-  const totalScore =
-    sugar.points + sodium.points + additives.points + nova.points + bonuses.points;
+  const items = [
+    { points: sugar.points, reason: sugar.reason },
+    { points: sodium.points, reason: sodium.reason },
+    { points: additives.points, reason: additives.reason },
+    { points: nova.points, reason: nova.reason },
+    ...bonuses,
+  ].filter((item) => item.reason);
 
-  const reasons = [sugar.reason, sodium.reason, additives.reason, nova.reason, ...bonuses.reasons].filter(
-    Boolean
-  );
+  const totalScore = items.reduce((sum, item) => sum + item.points, 0);
+
+  // Worst-first: the biggest penalties lead, bonuses (negative points)
+  // naturally sort to the end.
+  items.sort((a, b) => b.points - a.points);
 
   return {
     grade: scoreToGrade(totalScore),
     totalScore,
-    reasons,
+    reasons: items.map((item) => item.reason),
   };
 }
