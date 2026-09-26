@@ -46,6 +46,7 @@ function normalizeProduct(barcode, product) {
     },
     additivesCount: product.additives_n ?? null,
     novaGroup: product.nova_group ?? null,
+    categoryTags: product.categories_tags || [],
   };
 }
 

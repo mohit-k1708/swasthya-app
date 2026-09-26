@@ -305,6 +305,24 @@ export default function BarcodeScanner({ onBack }) {
               </ul>
             )}
 
+            {result.alternatives?.length > 0 && (
+              <div className="alternatives-section">
+                <h3 className="alternatives-title">🌟 Healthier Alternatives</h3>
+                <div className="alternatives-grid">
+                  {result.alternatives.map((alt) => {
+                    const color = (GRADE_INFO[alt.grade] || GRADE_INFO.C).color;
+                    return (
+                      <div className="alt-card" key={alt.name}>
+                        <div className={`grade-circle alt-grade grade-${color}`}>{alt.grade}</div>
+                        <p className="alt-name">{alt.name}</p>
+                        <p className="alt-benefit">{alt.benefit}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <button className="cta" onClick={resetToScan}>
               📷 Scan another product
             </button>

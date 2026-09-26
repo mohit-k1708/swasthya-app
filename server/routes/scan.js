@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { fetchProductByBarcode } from '../services/openFoodFacts.js';
 import { gradeProduct } from '../services/grading.js';
+import { getAlternatives } from '../services/alternatives.js';
 
 const router = Router();
 
@@ -20,7 +21,16 @@ router.post('/scan', async (req, res) => {
   }
 
   const grading = gradeProduct(product);
-  res.json({ ...product, ...grading });
+  const response = { ...product, ...grading };
+
+  if (grading.grade === 'D' || grading.grade === 'E') {
+    const alternatives = getAlternatives(product.categoryTags);
+    if (alternatives) {
+      response.alternatives = alternatives;
+    }
+  }
+
+  res.json(response);
 });
 
 export default router;
