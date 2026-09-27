@@ -1012,6 +1012,53 @@ h1 .accent {
   box-shadow: var(--shadow-sm);
 }
 
+.alt-image-wrap {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 10px;
+  animation: alt-bob 2s ease-in-out infinite;
+}
+
+.alt-image,
+.alt-image-fallback {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  object-fit: cover;
+  opacity: 0;
+  animation: alt-fade-in 300ms ease-out forwards;
+  transition: transform 0.2s ease;
+}
+
+.alt-image-fallback {
+  background: #D9D2C4;
+}
+
+.alt-card:hover .alt-image,
+.alt-card:hover .alt-image-fallback {
+  transform: scale(1.05);
+}
+
+@keyframes alt-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes alt-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
 .grade-circle.alt-grade {
   width: 34px;
   height: 34px;

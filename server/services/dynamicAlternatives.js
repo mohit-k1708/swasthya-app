@@ -7,7 +7,8 @@ const SEARCH_BASE_URL = 'https://world.openfoodfacts.org/api/v2/search';
 const REQUEST_TIMEOUT_MS = 10000;
 const CANDIDATES_TO_FETCH = 20;
 const RESULTS_WANTED = 3;
-const SEARCH_FIELDS = 'product_name,nutriments,nova_group,additives_n,code,categories_tags';
+const SEARCH_FIELDS =
+  'product_name,nutriments,nova_group,additives_n,code,categories_tags,image_small_url,image_url';
 const MAX_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 1000;
 
@@ -153,5 +154,6 @@ export async function searchAlternatives(category, originalGrade) {
     name: match.name,
     grade: match.grade,
     benefit: buildHighlight(match.normalized, match.grading),
+    image: match.normalized.imageUrl,
   }));
 }

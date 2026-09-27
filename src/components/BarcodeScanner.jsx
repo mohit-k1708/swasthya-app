@@ -32,6 +32,24 @@ const ANALYZING_MESSAGE_SWAP_MS = 1100;
 
 const fmt = (value, unit) => (value == null ? '—' : `${value}${unit}`);
 
+function AltImage({ src, alt }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return <div className="alt-image-fallback" aria-hidden="true" />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="alt-image"
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export default function BarcodeScanner({ onBack }) {
   const [view, setView] = useState('scan'); // 'scan' | 'analyzing' | 'result'
   const [barcode, setBarcode] = useState('');
@@ -368,6 +386,9 @@ export default function BarcodeScanner({ onBack }) {
                         const altInfo = GRADE_INFO[alt.grade] || GRADE_INFO.C;
                         return (
                           <div className="alt-card" key={alt.name}>
+                            <div className="alt-image-wrap">
+                              <AltImage src={alt.image} alt={alt.name} />
+                            </div>
                             <div
                               className={`grade-circle alt-grade grade-${altInfo.color}`}
                               title={altInfo.tooltip}
