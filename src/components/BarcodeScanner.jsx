@@ -167,7 +167,7 @@ export default function BarcodeScanner({ onBack }) {
     setView('analyzing');
 
     // Purely cosmetic progress messaging — the real request is one call,
-    // but "Analyzing" then "Finding healthier options" reads as two steps.
+    // but "Analyzing" then "Crunching the nutrition facts" reads as two steps.
     setTimeout(() => {
       if (flowTokenRef.current === token && isMountedRef.current) {
         setAnalyzingStage('searching');
@@ -238,6 +238,8 @@ export default function BarcodeScanner({ onBack }) {
 
     try {
       const original = {
+        barcode: result.barcode,
+        name: result.name,
         grade: result.grade,
         nutrition: {
           sugar: result.nutrition?.sugar,
@@ -321,7 +323,7 @@ export default function BarcodeScanner({ onBack }) {
                 🔍 Sniffing out what's inside <b>{pendingCode}</b>…
               </p>
             ) : (
-              <p>🌟 Finding healthier options…</p>
+              <p>📊 Crunching the nutrition facts…</p>
             )}
           </div>
         )}
@@ -399,7 +401,12 @@ export default function BarcodeScanner({ onBack }) {
               </div>
             </div>
 
-            {result.reasons?.length > 0 && (
+            {/* The AI card below already explains these same reasons in plain
+                language for D/E grades — showing the raw mechanical list too
+                would just be the same information twice. A/B/C grades have
+                no AI card, so they keep the mechanical list as the only
+                explanation. */}
+            {result.reasons?.length > 0 && !result.aiExplanation && (
               <ul className="reasons-list">
                 {result.reasons.map((reason) => (
                   <li key={reason}>{reason}</li>

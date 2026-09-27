@@ -32,11 +32,14 @@
   --bg-yellow-top: #FFF6DC;
   --bg-yellow-bottom: #FBE39E;
 
-  /* Wood texture for buttons */
-  --wood-light: #A9835C;
-  --wood: #8B6F47;
-  --wood-dark: #5A4527;
-  --wood-darkest: #3A2B16;
+  /* Wood texture for buttons — base is the Figma spec color (#895129),
+     light/dark/darkest are proportionally scaled from it the same way the
+     previous palette scaled from its own base, so the grain/shadow/hover
+     layering keeps working unchanged. */
+  --wood-light: #A96432;
+  --wood: #895129;
+  --wood-dark: #533119;
+  --wood-darkest: #331E0F;
   --wood-text: #FFF3D6;
 
   --radius: 22px;
@@ -59,9 +62,8 @@ body {
 }
 
 /* Shared wood-grain button texture: layered grain streaks over a
-   brown gradient, used by .cta and .nav-cta. */
+   brown gradient, used by .cta and .alternatives-toggle. */
 .cta,
-.nav-cta,
 .alternatives-toggle {
   position: relative;
   overflow: hidden;
@@ -88,7 +90,6 @@ body {
 
 /* Diagonal shine sweep on hover */
 .cta::after,
-.nav-cta::after,
 .alternatives-toggle::after {
   content: '';
   position: absolute;
@@ -103,7 +104,6 @@ body {
 }
 
 .cta:hover::after,
-.nav-cta:hover::after,
 .alternatives-toggle:hover::after {
   left: 130%;
 }
@@ -180,26 +180,6 @@ button {
   font-weight: 700;
   font-size: 14px;
   display: none;
-}
-
-.nav-cta {
-  padding: 11px 22px;
-  border-radius: 20px;
-  font-weight: 800;
-  box-shadow: 0 5px 0 var(--wood-darkest), 0 10px 20px rgba(58, 43, 22, 0.35);
-  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
-}
-
-.nav-cta:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.12);
-  box-shadow: 0 6px 0 var(--wood-darkest), 0 14px 24px rgba(58, 43, 22, 0.4);
-}
-
-.nav-cta:active {
-  transform: translateY(3px);
-  filter: brightness(0.85);
-  box-shadow: 0 1px 0 var(--wood-darkest);
 }
 
 /* PAGE */
@@ -947,24 +927,25 @@ h1 .accent {
 
 .ai-explanation-card {
   background: var(--brown-light);
-  border: 2px solid var(--brown);
+  border: 3px solid var(--brown);
   border-radius: var(--radius-sm);
-  padding: 14px 16px;
+  padding: 22px 24px;
   margin: 0 0 24px;
   text-align: left;
+  box-shadow: var(--shadow-sm);
 }
 
 .ai-explanation-title {
   font-weight: 800;
-  font-size: 13.5px;
+  font-size: 17px;
   color: var(--brown-dark);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .ai-explanation-text {
-  font-size: 13px;
+  font-size: 15.5px;
   color: var(--ink);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .alternatives-section {

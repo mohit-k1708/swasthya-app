@@ -10,7 +10,7 @@ function App() {
 
   return (
     <div className="site">
-      <Navbar screen={screen} onNavigate={setScreen} />
+      <Navbar onNavigate={setScreen} />
       <main className="page">
         {screen === 'home' && <HomeScreen onScan={() => setScreen('scan')} />}
         {screen === 'scan' && <BarcodeScanner onBack={() => setScreen('home')} />}

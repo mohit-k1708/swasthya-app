@@ -30,7 +30,7 @@ router.post('/scan', async (req, res) => {
     // independent lookups keyed off the same grading result, and explainGrade
     // has its own short timeout (see aiExplanation.js) so it can never be the
     // slow part of this response.
-    const explanationPromise = explainGrade(grading);
+    const explanationPromise = explainGrade({ barcode, ...grading });
 
     const category = resolveCategory(product.categoryTags);
 

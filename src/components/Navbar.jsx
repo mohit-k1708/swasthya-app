@@ -1,4 +1,4 @@
-export default function Navbar({ screen, onNavigate }) {
+export default function Navbar({ onNavigate }) {
   return (
     <header className="navbar">
       <div className="navbar-inner">
@@ -8,10 +8,6 @@ export default function Navbar({ screen, onNavigate }) {
         </button>
 
         <div className="tagline">Scan &middot; Know &middot; Choose Better</div>
-
-        <button className="nav-cta" onClick={() => onNavigate('scan')}>
-          📷 {screen === 'scan' ? 'Scanning' : 'Scan a Product'}
-        </button>
       </div>
     </header>
   );

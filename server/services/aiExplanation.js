@@ -1,27 +1,30 @@
+import { getCached, setCached } from './aiCache.js';
+
 const GEMINI_URL_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-const MODEL = 'gemini-3.8-flash';
-// gemini-3.8-flash burns a mandatory chunk of internal "thinking" tokens
-// even on trivial prompts (~200+ tokens, several seconds) regardless of
-// thinkingBudget — confirmed by direct testing, real responses have taken
-// anywhere from ~5s to ~20s. Two different timeout budgets below reflect two
-// different blast radii, not two different opinions of the model:
-//
-// - explainGrade() runs inside POST /api/scan, which blocks the entire
-//   barcode-scan result (not just the AI card) until it resolves — capped
-//   short so a slow Gemini response can't turn a barcode scan into a
-//   multi-second stall for something the user didn't explicitly ask to wait
-//   on.
-// - compareAlternative() runs behind its own explicit "Why is this better?"
-//   click, with its own dedicated per-card loading spinner in the UI — the
-//   user already opted into waiting for this one, so it can afford to give
-//   Gemini the room the model actually needs.
-const EXPLAIN_TIMEOUT_MS = 8000;
-const COMPARE_TIMEOUT_MS = 20000;
+// gemini-3.8-flash (the initial choice) turned out to be a newest/preview
+// model with a free-tier quota of just 20 requests *per day* (confirmed via
+// the API's own 429 body: quotaId "GenerateRequestsPerDayPerProjectPerModel
+// -FreeTier", quotaValue 20) — normal manual testing exhausted it almost
+// immediately. gemini-flash-lite-latest (currently gemini-3.5-flash-lite)
+// has no such wall in the same testing (15 rapid-fire calls, zero 429s) and
+// has no mandatory "thinking" token overhead, so it's also ~5-10x faster
+// (~1-2s vs 5-20s). Don't add thinkingConfig back for this model — it
+// doesn't support the field and 400s if it's present.
+const MODEL = 'gemini-flash-lite-latest';
+// Per-attempt timeout, not the total budget — callGemini retries once (see
+// below). Measured directly against this model: successful calls finish in
+// ~1-2s, but roughly a third of calls hang with literally no response for
+// the full timeout duration (not "slow", genuinely stuck) rather than
+// erroring — a real, reproducible reliability gap in the endpoint, not
+// something a longer timeout fixes. Retrying once recovered 10/10 in
+// testing (7 succeeded first try, all 3 failures recovered on retry), same
+// pattern already used for the OFF API calls elsewhere in this codebase.
+const EXPLAIN_ATTEMPT_TIMEOUT_MS = 5000;
+const COMPARE_ATTEMPT_TIMEOUT_MS = 6000;
+const RETRY_DELAY_MS = 300;
 
-async function callGemini(prompt, timeoutMs) {
+async function callGeminiOnce(prompt, timeoutMs) {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -32,11 +35,7 @@ async function callGemini(prompt, timeoutMs) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          maxOutputTokens: 150,
-          temperature: 0.4,
-          thinkingConfig: { thinkingBudget: 0 },
-        },
+        generationConfig: { maxOutputTokens: 150, temperature: 0.4 },
       }),
     });
 
@@ -58,6 +57,18 @@ async function callGemini(prompt, timeoutMs) {
   }
 }
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function callGemini(prompt, attemptTimeoutMs) {
+  if (!process.env.GEMINI_API_KEY) return null;
+
+  const first = await callGeminiOnce(prompt, attemptTimeoutMs);
+  if (first) return first;
+
+  await wait(RETRY_DELAY_MS);
+  return callGeminiOnce(prompt, attemptTimeoutMs);
+}
+
 // Deterministic, template-based explanation built only from what
 // gradeProduct() already computed — used whenever the AI call is
 // unavailable (no key, timeout, API error) so the feature never just
@@ -69,19 +80,32 @@ function fallbackExplanation({ grade, reasons }) {
   return `This product graded ${grade} because of: ${reasons.join(', ')}.`;
 }
 
-// { grade, totalScore, reasons } -> short plain-language explanation.
-// Uses only the passed-in grading result — no recalculating, no outside facts.
-export async function explainGrade({ grade, totalScore, reasons }) {
+// { barcode, grade, totalScore, reasons } -> short plain-language
+// explanation. Uses only the passed-in grading result — no recalculating,
+// no outside facts. Cached by barcode+grade (1h) so re-scanning the same
+// product doesn't burn a second API call — but only real AI successes are
+// cached, so a failed call still retries fresh next time instead of
+// locking in the fallback for an hour.
+export async function explainGrade({ barcode, grade, totalScore, reasons }) {
+  const cacheKey = `explain:${barcode}:${grade}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
   const prompt =
     `A food product was graded ${grade} (internal score ${totalScore}, where lower is healthier) ` +
     `by a nutrition scoring system. The specific reasons the system flagged were: ` +
     `${reasons.length ? reasons.join('; ') : 'none in particular'}.\n\n` +
-    `In 1-2 short, plain-English sentences, explain to a shopper why this product got this grade. ` +
+    `Explain this in your own words in 1-2 short, friendly sentences — don't just list the ` +
+    `factors back verbatim, reword it like you're actually talking to someone. ` +
     `Use only the reasons given above — don't invent nutrition facts, don't make medical claims, ` +
-    `don't mention the internal score number. Be direct and conversational, no markdown.`;
+    `don't mention the internal score number. No markdown.`;
 
-  const aiText = await callGemini(prompt, EXPLAIN_TIMEOUT_MS);
-  return aiText || fallbackExplanation({ grade, reasons });
+  const aiText = await callGemini(prompt, EXPLAIN_ATTEMPT_TIMEOUT_MS);
+  if (aiText) {
+    setCached(cacheKey, aiText);
+    return aiText;
+  }
+  return fallbackExplanation({ grade, reasons });
 }
 
 function fallbackComparison({ original, alternative }) {
@@ -108,9 +132,15 @@ function fallbackComparison({ original, alternative }) {
   return `${alternative.name} (grade ${alternative.grade}) has ${comparison} than the scanned product (grade ${original.grade}).`;
 }
 
-// { original: {grade, nutrition}, alternative: {name, grade, nutrition} } ->
-// short comparison. Uses only the real numbers passed in for both products.
+// { original: {barcode, name, grade, nutrition}, alternative: {name, grade,
+// nutrition} } -> short comparison. Uses only the real numbers passed in for
+// both products. Cached by original-barcode+alternative-name (1h), same
+// cache-successes-only rule as explainGrade.
 export async function compareAlternative({ original, alternative }) {
+  const cacheKey = `compare:${original.barcode || original.name || 'unknown'}:${alternative.name}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
   const fmt = (n) =>
     n == null
       ? 'unknown'
@@ -124,6 +154,10 @@ export async function compareAlternative({ original, alternative }) {
     `Don't invent facts, don't make medical claims, don't recalculate or mention a different grade than given. ` +
     `Be direct and conversational, no markdown.`;
 
-  const aiText = await callGemini(prompt, COMPARE_TIMEOUT_MS);
-  return aiText || fallbackComparison({ original, alternative });
+  const aiText = await callGemini(prompt, COMPARE_ATTEMPT_TIMEOUT_MS);
+  if (aiText) {
+    setCached(cacheKey, aiText);
+    return aiText;
+  }
+  return fallbackComparison({ original, alternative });
 }
