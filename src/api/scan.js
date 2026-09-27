@@ -13,3 +13,17 @@ export async function scanBarcode(barcode) {
 
   return response.json();
 }
+
+export async function explainAlternative(original, alternative) {
+  const response = await fetch(`${API_BASE_URL}/api/explain-alternative`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ original, alternative }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Server responded with ${response.status}`);
+  }
+
+  return response.json();
+}

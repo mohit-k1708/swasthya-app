@@ -155,5 +155,11 @@ export async function searchAlternatives(category, originalGrade) {
     grade: match.grade,
     benefit: buildHighlight(match.normalized, match.grading),
     image: match.normalized.imageUrl,
+    nutrition: {
+      sugar: match.normalized.nutrition.sugar,
+      sodium: match.normalized.nutrition.sodium,
+      protein: match.normalized.nutrition.protein,
+      additivesCount: match.normalized.additivesCount,
+    },
   }));
 }

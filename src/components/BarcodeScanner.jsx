@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Quagga from '@ericblade/quagga2';
-import { scanBarcode } from '../api/scan';
+import { scanBarcode, explainAlternative } from '../api/scan';
 import Mascot from './Mascot';
 
 const ANALYZING_DELAY_MS = 2000;
@@ -58,6 +58,8 @@ export default function BarcodeScanner({ onBack }) {
   const [result, setResult] = useState(null); // { ok, barcode, message }
   const [analyzingStage, setAnalyzingStage] = useState('scanning'); // 'scanning' | 'searching'
   const [showAlternatives, setShowAlternatives] = useState(false);
+  // Keyed by alternative name: { status: 'loading' | 'done' | 'error', text, expanded }
+  const [altComparisons, setAltComparisons] = useState({});
 
   const [isScanning, setIsScanning] = useState(false);
   const [cameraStatus, setCameraStatus] = useState('');
@@ -160,6 +162,7 @@ export default function BarcodeScanner({ onBack }) {
     setPendingCode(trimmed);
     setResult(null);
     setShowAlternatives(false);
+    setAltComparisons({});
     setAnalyzingStage('scanning');
     setView('analyzing');
 
@@ -213,6 +216,44 @@ export default function BarcodeScanner({ onBack }) {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       runScanFlow(barcode);
+    }
+  };
+
+  // Fetches (once) and toggles the "why is this better?" comparison for one
+  // alternative card. Already-fetched text is cached in altComparisons, so a
+  // second click just re-shows it instead of calling the API again.
+  const handleWhyBetter = async (alt) => {
+    const current = altComparisons[alt.name];
+
+    if (current && current.status !== 'loading') {
+      setAltComparisons((prev) => ({
+        ...prev,
+        [alt.name]: { ...prev[alt.name], expanded: !prev[alt.name].expanded },
+      }));
+      return;
+    }
+    if (current?.status === 'loading') return;
+
+    setAltComparisons((prev) => ({ ...prev, [alt.name]: { status: 'loading', expanded: true } }));
+
+    try {
+      const original = {
+        grade: result.grade,
+        nutrition: {
+          sugar: result.nutrition?.sugar,
+          sodium: result.nutrition?.sodium,
+          protein: result.nutrition?.protein,
+          additivesCount: result.additivesCount,
+        },
+      };
+      const { comparison } = await explainAlternative(original, alt);
+      setAltComparisons((prev) => ({
+        ...prev,
+        [alt.name]: { status: 'done', text: comparison, expanded: true },
+      }));
+    } catch (err) {
+      console.error('Explain-alternative failed:', err);
+      setAltComparisons((prev) => ({ ...prev, [alt.name]: { status: 'error', expanded: true } }));
     }
   };
 
@@ -366,6 +407,13 @@ export default function BarcodeScanner({ onBack }) {
               </ul>
             )}
 
+            {result.aiExplanation && (
+              <div className="ai-explanation-card">
+                <p className="ai-explanation-title">🤖 Why this grade?</p>
+                <p className="ai-explanation-text">{result.aiExplanation}</p>
+              </div>
+            )}
+
             {result.alternatives?.length > 0 && (
               <div className="alternatives-section">
                 <button
@@ -397,6 +445,32 @@ export default function BarcodeScanner({ onBack }) {
                             </div>
                             <p className="alt-name">{alt.name}</p>
                             <p className="alt-benefit">{alt.benefit}</p>
+
+                            <button
+                              type="button"
+                              className="alt-why-better"
+                              onClick={() => handleWhyBetter(alt)}
+                              disabled={altComparisons[alt.name]?.status === 'loading'}
+                            >
+                              {altComparisons[alt.name]?.status === 'loading' ? (
+                                <span className="alt-why-spinner" aria-hidden="true" />
+                              ) : altComparisons[alt.name]?.expanded ? (
+                                'Hide comparison'
+                              ) : (
+                                'Why is this better?'
+                              )}
+                            </button>
+
+                            {altComparisons[alt.name]?.expanded &&
+                              altComparisons[alt.name]?.status === 'done' && (
+                                <p className="alt-comparison-text">{altComparisons[alt.name].text}</p>
+                              )}
+                            {altComparisons[alt.name]?.expanded &&
+                              altComparisons[alt.name]?.status === 'error' && (
+                                <p className="alt-comparison-text alt-comparison-error">
+                                  Couldn't load a comparison right now — try again in a moment.
+                                </p>
+                              )}
                           </div>
                         );
                       })}
