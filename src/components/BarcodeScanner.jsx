@@ -39,6 +39,7 @@ export default function BarcodeScanner({ onBack }) {
   const [pendingCode, setPendingCode] = useState('');
   const [result, setResult] = useState(null); // { ok, barcode, message }
   const [analyzingStage, setAnalyzingStage] = useState('scanning'); // 'scanning' | 'searching'
+  const [showAlternatives, setShowAlternatives] = useState(false);
 
   const [isScanning, setIsScanning] = useState(false);
   const [cameraStatus, setCameraStatus] = useState('');
@@ -140,6 +141,7 @@ export default function BarcodeScanner({ onBack }) {
     const token = ++flowTokenRef.current;
     setPendingCode(trimmed);
     setResult(null);
+    setShowAlternatives(false);
     setAnalyzingStage('scanning');
     setView('analyzing');
 
@@ -348,24 +350,38 @@ export default function BarcodeScanner({ onBack }) {
 
             {result.alternatives?.length > 0 && (
               <div className="alternatives-section">
-                <h3 className="alternatives-title">🌟 Healthier Alternatives</h3>
-                <div className="alternatives-grid">
-                  {result.alternatives.map((alt) => {
-                    const altInfo = GRADE_INFO[alt.grade] || GRADE_INFO.C;
-                    return (
-                      <div className="alt-card" key={alt.name}>
-                        <div
-                          className={`grade-circle alt-grade grade-${altInfo.color}`}
-                          title={altInfo.tooltip}
-                        >
-                          {alt.grade}
-                        </div>
-                        <p className="alt-name">{alt.name}</p>
-                        <p className="alt-benefit">{alt.benefit}</p>
-                      </div>
-                    );
-                  })}
-                </div>
+                <button
+                  type="button"
+                  className="alternatives-toggle"
+                  onClick={() => setShowAlternatives((prev) => !prev)}
+                  aria-expanded={showAlternatives}
+                >
+                  {showAlternatives ? 'Hide Alternatives' : 'See Healthier Alternatives'}
+                  <span className="alternatives-toggle-arrow">{showAlternatives ? '↑' : '↓'}</span>
+                </button>
+
+                {showAlternatives && (
+                  <>
+                    <h3 className="alternatives-title">🌟 Healthier Alternatives</h3>
+                    <div className="alternatives-grid">
+                      {result.alternatives.map((alt) => {
+                        const altInfo = GRADE_INFO[alt.grade] || GRADE_INFO.C;
+                        return (
+                          <div className="alt-card" key={alt.name}>
+                            <div
+                              className={`grade-circle alt-grade grade-${altInfo.color}`}
+                              title={altInfo.tooltip}
+                            >
+                              {alt.grade}
+                            </div>
+                            <p className="alt-name">{alt.name}</p>
+                            <p className="alt-benefit">{alt.benefit}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

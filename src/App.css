@@ -61,7 +61,8 @@ body {
 /* Shared wood-grain button texture: layered grain streaks over a
    brown gradient, used by .cta and .nav-cta. */
 .cta,
-.nav-cta {
+.nav-cta,
+.alternatives-toggle {
   position: relative;
   overflow: hidden;
   background-color: var(--wood);
@@ -87,7 +88,8 @@ body {
 
 /* Diagonal shine sweep on hover */
 .cta::after,
-.nav-cta::after {
+.nav-cta::after,
+.alternatives-toggle::after {
   content: '';
   position: absolute;
   top: 0;
@@ -101,7 +103,8 @@ body {
 }
 
 .cta:hover::after,
-.nav-cta:hover::after {
+.nav-cta:hover::after,
+.alternatives-toggle:hover::after {
   left: 130%;
 }
 
@@ -944,6 +947,43 @@ h1 .accent {
 
 .alternatives-section {
   margin: 4px 0 24px;
+}
+
+.alternatives-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 16px;
+  font-family: 'Baloo 2', 'Trebuchet MS', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 14.5px;
+  cursor: pointer;
+  box-shadow: 0 5px 0 var(--wood-darkest), 0 12px 22px rgba(58, 43, 22, 0.35);
+  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+}
+
+.alternatives-toggle:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.12);
+}
+
+.alternatives-toggle:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--wood-darkest), 0 6px 14px rgba(58, 43, 22, 0.3);
+}
+
+.alternatives-toggle-arrow {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.alternatives-section .alternatives-title {
+  margin-top: 16px;
 }
 
 .alternatives-title {
