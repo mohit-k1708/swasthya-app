@@ -24,24 +24,37 @@ const ALTERNATIVES = {
     { name: 'Muesli (no added sugar)', grade: 'B', benefit: 'Whole grains with dried fruit' },
     { name: 'Bran Flakes', grade: 'B', benefit: 'High fiber that supports digestion' },
   ],
+  chocolate: [
+    { name: '85% Dark Chocolate', grade: 'A', benefit: 'Much less sugar than milk chocolate, same treat' },
+    { name: '90% Cacao Dark Chocolate', grade: 'A', benefit: 'High cocoa content, minimal added sugar' },
+    { name: 'Unsweetened Cacao Nibs', grade: 'A', benefit: 'All the chocolate flavor, no added sugar' },
+  ],
 };
 
 // Open Food Facts category tags (e.g. "en:spreads", "en:chocolate-spreads")
 // that map to each of our alternative buckets. Matched by substring so
 // regional/sub-category tags (chocolate-spreads, hazelnut-spreads, ...)
 // still resolve to the right bucket.
-const CATEGORY_KEYWORDS = {
-  spreads: ['spread', 'nut-butter'],
-  noodles: ['noodle', 'pasta'],
-  snacks: ['snack', 'chips', 'crisps'],
-  drinks: ['beverage', 'drink', 'soda', 'soft-drink'],
-  cereals: ['breakfast-cereal', 'cereal'],
-};
+//
+// Order matters: real products are often tagged with a broad category
+// (candy bars and chocolate are both tagged "en:snacks" on Open Food Facts)
+// alongside a more specific one ("en:chocolates"). Listed as an ordered
+// array, not a plain object, so the specific "chocolate" bucket is checked
+// before the broad "snacks" one — otherwise a scanned chocolate bar
+// resolves to "snacks" and suggests chips instead of chocolate.
+const CATEGORY_PRIORITY = [
+  ['chocolate', ['chocolate', 'cocoa', 'candy', 'candies', 'confectionery', 'confectioneries']],
+  ['spreads', ['spread', 'nut-butter']],
+  ['noodles', ['noodle', 'pasta']],
+  ['snacks', ['snack', 'chips', 'crisps']],
+  ['drinks', ['beverage', 'drink', 'soda', 'soft-drink']],
+  ['cereals', ['breakfast-cereal', 'cereal']],
+];
 
 export function resolveCategory(categoryTags = []) {
   const tags = categoryTags.map((tag) => tag.toLowerCase());
 
-  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+  for (const [category, keywords] of CATEGORY_PRIORITY) {
     if (tags.some((tag) => keywords.some((keyword) => tag.includes(keyword)))) {
       return category;
     }

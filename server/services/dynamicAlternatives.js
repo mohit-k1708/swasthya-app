@@ -1,12 +1,13 @@
 import { request as undiciRequest } from 'undici';
 import { offDispatcher, normalizeProduct } from './openFoodFacts.js';
 import { gradeProduct } from './grading.js';
+import { resolveCategory } from './alternatives.js';
 
 const SEARCH_BASE_URL = 'https://world.openfoodfacts.org/api/v2/search';
 const REQUEST_TIMEOUT_MS = 10000;
 const CANDIDATES_TO_FETCH = 20;
 const RESULTS_WANTED = 3;
-const SEARCH_FIELDS = 'product_name,nutriments,nova_group,additives_n,code';
+const SEARCH_FIELDS = 'product_name,nutriments,nova_group,additives_n,code,categories_tags';
 const MAX_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 1000;
 
@@ -16,6 +17,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // category vocabulary (e.g. we say "drinks", OFF categorizes as
 // "beverages") — map to the term that actually finds matches there.
 const CATEGORY_SEARCH_TERMS = {
+  chocolate: 'chocolates',
   spreads: 'spreads',
   noodles: 'noodles',
   snacks: 'snacks',
@@ -124,6 +126,13 @@ export async function searchAlternatives(category, originalGrade) {
     // Skip entries with no real nutrition data at all — grading them would
     // silently default to a spuriously good score.
     if (normalized.nutrition.sugar == null && normalized.nutrition.protein == null) continue;
+
+    // Open Food Facts' categories_tags_en search filter is looser than an
+    // exact match — a search for "chocolates" can still surface a result
+    // that's only tagged with the broader "snacks". Re-check each result's
+    // own tags resolve to the same bucket we searched for, so a chocolate
+    // search never quietly hands back a bag of chips.
+    if (resolveCategory(normalized.categoryTags) !== category) continue;
 
     const grading = gradeProduct(normalized);
     if (grading.grade !== 'A' && grading.grade !== 'B') continue;
